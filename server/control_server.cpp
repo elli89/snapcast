@@ -27,6 +27,7 @@
 #include "message/time.hpp"
 
 #include <iostream>
+#include <netinet/ip.h>
 
 using namespace std;
 using json = nlohmann::json;
@@ -133,6 +134,12 @@ void ControlServer::handleAccept(tcp::socket socket, Args&&... args)
         setsockopt(socket.native_handle(), SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
         setsockopt(socket.native_handle(), SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
         //	socket->set_option(boost::asio::ip::tcp::no_delay(false));
+        int iptos = IPTOS_DSCP_EF;
+        if (setsockopt(socket.native_handle(), IPPROTO_IP, IP_TOS, &iptos, sizeof(iptos)) < 0)
+            LOG(WARNING, LOG_TAG) << "Failed to set TOS" << endl;
+
+        /// experimental: turn on tcp::no_delay
+        socket.set_option(tcp::no_delay(true));
         LOG(NOTICE, LOG_TAG) << "ControlServer::NewConnection: " << socket.remote_endpoint().address().to_string() << endl;
         shared_ptr<SessionType> session = make_shared<SessionType>(this, std::move(socket), std::forward<Args>(args)...);
         onNewSession(std::move(session));

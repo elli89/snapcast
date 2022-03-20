@@ -23,6 +23,7 @@
 #include "message/hello.hpp"
 #include <iostream>
 #include <mutex>
+#include <netinet/ip.h>
 
 
 using namespace std;
@@ -79,6 +80,14 @@ void ClientConnection::connect(const ResultHandler& handler)
         handler(ec);
         return;
     }
+
+    int iptos = IPTOS_DSCP_EF;
+    if (setsockopt(socket_.native_handle(), IPPROTO_IP, IP_TOS, &iptos, sizeof(iptos)) < 0)
+        LOG(WARNING, LOG_TAG) << "Failed to set TOS" << endl;
+
+    /// experimental: turn on tcp::no_delay
+    socket_.set_option(tcp::no_delay(true));
+
     LOG(NOTICE, LOG_TAG) << "Connected to " << socket_.remote_endpoint().address().to_string() << endl;
     handler(ec);
 

@@ -31,6 +31,7 @@
 
 // standard headers
 #include <iostream>
+#include <netinet/ip.h>
 
 using namespace std;
 using namespace streamreader;
@@ -196,6 +197,9 @@ void StreamServer::handleAccept(tcp::socket socket)
         tv.tv_usec = 0;
         setsockopt(socket.native_handle(), SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
         setsockopt(socket.native_handle(), SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
+        int iptos = IPTOS_DSCP_EF;
+        if (setsockopt(socket.native_handle(), IPPROTO_IP, IP_TOS, &iptos, sizeof(iptos)) < 0)
+            LOG(WARNING, LOG_TAG) << "Failed to set TOS" << endl;
 
         /// experimental: turn on tcp::no_delay
         socket.set_option(tcp::no_delay(true));
